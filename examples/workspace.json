@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "project": "upsell-opportunity-finder",
+  "settings": {
+    "currency": "USD",
+    "threshold": 80,
+    "starterPrice": 50,
+    "growthPrice": 100,
+    "scalePrice": 200
+  },
+  "records": [
+    {
+      "id": "customer-1",
+      "name": "Maple Studio",
+      "email": "buyer@example.com",
+      "plan": "starter",
+      "utilization": 90,
+      "needsReporting": true,
+      "healthy": true,
+      "consent": true,
+      "status": "unreviewed"
+    },
+    {
+      "id": "customer-2",
+      "name": "River Foods",
+      "email": "team@example.com",
+      "plan": "growth",
+      "utilization": 95,
+      "needsReporting": false,
+      "healthy": false,
+      "consent": true,
+      "status": "unreviewed"
+    }
+  ]
+}

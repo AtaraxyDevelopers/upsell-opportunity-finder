@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Business workspace · Ataraxy Developers</title>
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="stylesheet" href="/style.css" />
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to workspace</a>
+    <header>
+      <a class="brand" href="https://ataraxydevelopers.com"
+        >AD <span>Ataraxy Developers</span></a
+      ><span class="badge">OPEN SOURCE / LOCAL WORKSPACE</span>
+    </header>
+    <main id="main">
+      <section class="hero">
+        <p class="eyebrow">TOOLS FOR BETTER BUSINESS DECISIONS</p>
+        <h1 id="title">Loading workspace…</h1>
+        <p id="description"></p>
+        <p id="scope" class="muted"></p>
+        <a id="repository" href="https://github.com/AtaraxyDevelopers"
+          >Source & documentation ↗</a
+        >
+      </section>
+      <div id="message" role="status" aria-live="polite"></div>
+      <section aria-label="Report controls" class="toolbar">
+        <label>Report date <input id="asOf" type="date" required /></label
+        ><button id="today" class="secondary">Use today</button
+        ><button id="print" class="secondary">Print report</button
+        ><a class="button secondary" href="/api/export">Export backup (JSON)</a
+        ><a class="button secondary" href="/api/export.csv"
+          >Export records (CSV)</a
+        ><label class="button secondary" for="import"
+          >Import backup<input
+            type="file"
+            id="import"
+            accept=".json,application/json"
+            class="file-input"
+        /></label>
+      </section>
+      <section id="metrics" class="metrics" aria-label="Summary"></section>
+      <section class="panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">YOUR NEXT STEPS</p>
+            <h2>Insights & actions</h2>
+          </div>
+          <label
+            >Search records
+            <input
+              id="search"
+              type="search"
+              placeholder="Name, status, or result"
+          /></label>
+        </div>
+        <p id="method" class="muted"></p>
+        <div id="notices"></div>
+        <div class="table-wrap">
+          <table id="results">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p id="empty" hidden>
+          No matching records. Add a record below or change your search.
+        </p>
+      </section>
+      <div class="workspace-grid">
+        <section class="panel">
+          <h2 id="editor-title">Add record</h2>
+          <form id="record-form">
+            <div id="record-fields" class="form-grid"></div>
+            <div class="actions">
+              <button type="submit">Save record</button
+              ><button type="button" id="cancel" class="secondary">
+                Clear form
+              </button>
+            </div>
+          </form>
+        </section>
+        <section class="panel">
+          <h2>Business settings</h2>
+          <form id="settings-form">
+            <div id="settings-fields" class="form-grid"></div>
+            <button type="submit">Save settings</button>
+          </form>
+          <p class="muted">
+            Use one currency consistently. Exports contain your business data;
+            store them privately.
+          </p>
+          <button id="clear" class="danger" type="button">
+            Clear all records
+          </button>
+        </section>
+      </div>
+      <footer>
+        Built by <a href="https://ataraxydevelopers.com">Ataraxy Developers</a>.
+        MIT licensed. Runs on your computer; no analytics or automatic messages.
+      </footer>
+    </main>
+  </body>
+</html>

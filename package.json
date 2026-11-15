@@ -1,0 +1,27 @@
+{
+  "name": "@ataraxydevelopers/upsell-opportunity-finder",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Find relevant upgrades using transparent customer fit rules.",
+  "license": "MIT",
+  "author": "Ataraxy Developers",
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AtaraxyDevelopers/upsell-opportunity-finder.git"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "example": "node scripts/analyze.mjs",
+    "test": "node --test test/*.test.mjs",
+    "test:browser": "playwright test",
+    "browser:install": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1",
+    "@axe-core/playwright": "4.14.0"
+  }
+}
