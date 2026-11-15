@@ -6,3 +6,7 @@ test-results/
 .env.*
 *.log
 .DS_Store
+
+# Output files created by the documented examples
+/report.json
+/store-workspace.json

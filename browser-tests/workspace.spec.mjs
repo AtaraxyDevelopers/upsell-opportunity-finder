@@ -16,7 +16,9 @@ test("A first-time user can edit, save, reload and export a record", async ({
     .locator('#record-form [name="name"]')
     .fill("Browser-tested customer");
   await page.getByRole("button", { name: "Save record", exact: true }).click();
-  await expect(page.getByRole("status")).toHaveText("Saved on this computer.");
+  await expect(page.getByRole("status")).toHaveText(
+    "Saved for this temporary session.",
+  );
   await page.reload();
   await expect(
     page.getByRole("cell", { name: "Browser-tested customer", exact: true }),
@@ -45,15 +47,13 @@ test("Invalid imports show an error and preserve the workspace", async ({
   page,
 }) => {
   page.on("dialog", (dialog) => dialog.accept());
-  await page
-    .locator("#import")
-    .setInputFiles({
-      name: "invalid.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(
-        JSON.stringify({ ...example, project: "wrong-project" }),
-      ),
-    });
+  await page.locator("#import").setInputFiles({
+    name: "invalid.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(
+      JSON.stringify({ ...example, project: "wrong-project" }),
+    ),
+  });
   await expect(page.getByRole("status")).toContainText(
     "Expected schemaVersion",
   );

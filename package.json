@@ -1,6 +1,6 @@
 {
   "name": "@ataraxydevelopers/upsell-opportunity-finder",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "description": "Find relevant upgrades using transparent customer fit rules.",
@@ -18,7 +18,8 @@
     "example": "node scripts/analyze.mjs",
     "test": "node --test test/*.test.mjs",
     "test:browser": "playwright test",
-    "browser:install": "playwright install chromium"
+    "browser:install": "playwright install chromium",
+    "walkthrough": "node examples/walkthrough.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.65.1",

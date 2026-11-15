@@ -26,7 +26,9 @@ export function createApp({
     mkdirSync(dirname(dataFile), { recursive: true });
     try {
       lock = openSync(dataFile + ".lock", "wx");
-    } catch {
+    } catch (error) {
+      if (error.code !== "EEXIST")
+        throw new Error(`Cannot open workspace ${dataFile}: ${error.message}`);
       throw new Error(
         `Workspace is locked: ${dataFile}. Stop the other instance. After a crash, remove the .lock file only when no instance is running.`,
       );
@@ -76,6 +78,7 @@ export function createApp({
           ...state,
           revision,
           token,
+          storage: memory ? "memory" : "file",
           config: { ...config, validate: undefined },
         });
       if (req.method === "GET" && url.pathname === "/api/report") {
@@ -101,8 +104,15 @@ export function createApp({
       }
       if (req.method === "PUT" && url.pathname === "/api/workspace") {
         if (req.headers["x-workspace-token"] !== token)
-          return send(403, { error: "Missing workspace token" });
-        if (req.headers["content-type"] !== "application/json")
+          return send(403, {
+            error:
+              "Workspace session changed or is invalid. Download your draft and reload before saving.",
+          });
+        if (
+          !/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(
+            req.headers["content-type"] ?? "",
+          )
+        )
           return send(415, { error: "Use application/json" });
         const chunks = [];
         let size = 0;
@@ -118,10 +128,12 @@ export function createApp({
         } catch {
           return send(400, { error: "Invalid JSON" });
         }
+        if (!body || typeof body !== "object" || Array.isArray(body))
+          return send(400, { error: "Workspace must be a JSON object" });
         if (body.revision !== revision)
           return send(409, {
             error:
-              "Workspace changed in another tab. Reload before saving; export your draft first if needed.",
+              "Workspace changed in another tab. Download your draft before reloading, then review it against the latest workspace.",
           });
         let next;
         try {
@@ -129,9 +141,15 @@ export function createApp({
         } catch (error) {
           return send(400, { error: error.message });
         }
+        const serialized = JSON.stringify(next, null, 2) + "\n";
+        if (Buffer.byteLength(serialized, "utf8") > 2 * 1024 * 1024)
+          return send(413, {
+            error:
+              "Workspace exceeds the 2 MB backup limit. Reduce the number or size of records before saving.",
+          });
         if (!memory) {
           const temporary = dataFile + ".tmp";
-          writeFileSync(temporary, JSON.stringify(next, null, 2) + "\n", {
+          writeFileSync(temporary, serialized, {
             mode: 0o600,
           });
           renameSync(temporary, dataFile);

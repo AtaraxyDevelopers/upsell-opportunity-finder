@@ -21,6 +21,7 @@
         <h1 id="title">Loading workspace…</h1>
         <p id="description"></p>
         <p id="scope" class="muted"></p>
+        <p id="storage-mode" class="muted"></p>
         <a id="repository" href="https://github.com/AtaraxyDevelopers"
           >Source & documentation ↗</a
         >
@@ -41,6 +42,7 @@
             class="file-input"
         /></label>
       </section>
+      <p id="report-caption" class="muted"></p>
       <section id="metrics" class="metrics" aria-label="Summary"></section>
       <section class="panel">
         <div class="section-heading">
@@ -78,6 +80,9 @@
               ><button type="button" id="cancel" class="secondary">
                 Clear form
               </button>
+              <button type="button" id="download-draft" class="secondary">
+                Download record draft
+              </button>
             </div>
           </form>
         </section>
@@ -86,6 +91,13 @@
           <form id="settings-form">
             <div id="settings-fields" class="form-grid"></div>
             <button type="submit">Save settings</button>
+            <button
+              type="button"
+              id="download-settings-draft"
+              class="secondary"
+            >
+              Download settings draft
+            </button>
           </form>
           <p class="muted">
             Use one currency consistently. Exports contain your business data;

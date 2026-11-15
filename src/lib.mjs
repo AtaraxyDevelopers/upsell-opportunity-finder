@@ -1,4 +1,12 @@
-export const round = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+// Shift decimal text rather than multiplying the binary float: 10.075 -> 10.08.
+// Half-cent ties round away from zero, including negative business results.
+export const round = (n) => {
+  if (!Number.isFinite(n)) throw new Error("Expected a finite number");
+  const [coefficient, exponent = "0"] = String(Math.abs(n)).split("e");
+  const shifted = Math.round(Number(`${coefficient}e${Number(exponent) + 2}`));
+  const [rounded, power = "0"] = String(shifted).split("e");
+  return Number(`${rounded}e${Number(power) - 2}`) * Math.sign(n);
+};
 export const sum = (values) => round(values.reduce((a, b) => a + b, 0));
 export const ratio = (a, b) => (b === 0 ? null : round((a / b) * 100));
 export const days = (later, earlier) =>
@@ -112,6 +120,8 @@ export function validateState(input, config) {
     throw new Error("Records must be an array of at most 10,000 records");
   const ids = new Set();
   const records = input.records.map((record) => {
+    if (!record || typeof record !== "object" || Array.isArray(record))
+      throw new Error("Every record must be an object");
     if (
       typeof record.id !== "string" ||
       !/^[a-zA-Z0-9_-]{1,80}$/.test(record.id) ||

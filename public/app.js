@@ -10,7 +10,10 @@ let workspace,
   token,
   editing = null,
   report,
-  busy = false;
+  busy = false,
+  memoryMode = false,
+  reportRequest = 0,
+  reportDate;
 function message(text, error = false) {
   $("message").textContent = text;
   $("message").className = error ? "error" : "";
@@ -41,7 +44,7 @@ function fields(container, definitions, values = {}) {
         values[f.key] ??
         (f.type === "number"
           ? f.min
-          : f.type === "date"
+          : f.type === "date" && !f.optional
             ? $("asOf").value
             : f.type === "select"
               ? f.options[0]
@@ -77,23 +80,45 @@ async function save(next) {
         "Content-Type": "application/json",
         "X-Workspace-Token": token,
       },
-      body: JSON.stringify({ ...next, revision: workspace.revision }),
+      body: JSON.stringify({
+        schemaVersion: next.schemaVersion,
+        project: next.project,
+        settings: next.settings,
+        records: next.records,
+        revision: workspace.revision,
+      }),
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error);
     workspace = result;
     await refresh();
-    message("Saved on this computer.");
+    message(
+      memoryMode
+        ? "Saved for this temporary session."
+        : "Saved on this computer.",
+    );
   } finally {
     busy = false;
   }
 }
 async function refresh() {
+  const request = ++reportRequest;
+  if (!$("asOf").value) $("asOf").value = reportDate ?? config.asOf;
+  const selectedDate = $("asOf").value;
   const response = await fetch(
-    "/api/report?date=" + encodeURIComponent($("asOf").value),
+    "/api/report?date=" + encodeURIComponent(selectedDate),
   );
   const result = await response.json();
+  if (request !== reportRequest) return;
   if (!response.ok) throw new Error(result.error);
+  reportDate = selectedDate;
+  try {
+    localStorage.setItem("report-date:" + config.slug, reportDate);
+  } catch {
+    /* Storage can be unavailable in private browsers. */
+  }
+  $("report-caption").textContent =
+    `Report date: ${reportDate} (UTC) · Currency: ${workspace.settings.currency}${workspace.settings.period ? " · Period: " + workspace.settings.period : ""}`;
   report = result;
   $("metrics").replaceChildren(
     ...report.metrics.map((m) => {
@@ -166,6 +191,10 @@ function renderRows() {
     );
     for (const action of availableActions)
       button(action.label, async () => {
+        if (editing !== null)
+          throw new Error(
+            "Save your edit or clear the form before using a row action.",
+          );
         const records = workspace.records.map((r) =>
           r.id === row.id
             ? {
@@ -212,16 +241,49 @@ function escapeHtml(v) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
 }
+function downloadJson(data, name) {
+  const url = URL.createObjectURL(
+    new Blob([JSON.stringify(data, null, 2) + "\n"], {
+      type: "application/json;charset=utf-8",
+    }),
+  );
+  const a = el("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function downloadDraft(kind) {
+  const form = $(kind === "record" ? "record-form" : "settings-form");
+  if (!form.reportValidity()) return;
+  let records = workspace.records,
+    settings = workspace.settings;
+  if (kind === "record") {
+    const record = {
+      id: editing ?? crypto.randomUUID(),
+      ...values(form, config.fields),
+    };
+    records = editing
+      ? records.map((r) => (r.id === editing ? record : r))
+      : [...records, record];
+  } else settings = values(form, config.settings);
+  downloadJson(
+    { schemaVersion: 1, project: config.slug, settings, records },
+    config.slug + "-" + kind + "-draft.json",
+  );
+  message(
+    "Draft downloaded. It includes your workspace snapshot; review it against newer changes before importing.",
+  );
+}
 function exportQuote(id) {
   const r = workspace.records.find((r) => r.id === id),
     s = workspace.settings;
-  const total =
-    r.quantity * r.unitPrice * (1 - r.discount / 100) * (1 + r.tax / 100);
+  const total = report.rows.find((row) => row.id === id).Total;
   const subject = encodeURIComponent(`Quote acceptance: ${r.id}`);
   const body = encodeURIComponent(
-    `I would like to accept quote ${r.id} for ${r.name}. Total: ${total.toFixed(2)} ${s.currency}. Please confirm availability and next steps.`,
+    `I would like to accept quote ${r.id} for ${r.name}. Total: ${total} ${s.currency}. Please confirm availability and next steps.`,
   );
-  const html = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Quote ${escapeHtml(r.id)}</title><style>body{font:18px/1.6 system-ui;max-width:760px;margin:50px auto;padding:25px;color:#17243b}h1{color:#1759bf}table{width:100%;border-collapse:collapse}td{padding:12px;border-bottom:1px solid #ddd}a{color:#1759bf}</style><h1>${escapeHtml(s.businessName)}</h1><h2>Quotation ${escapeHtml(r.id)}</h2><p>Prepared for ${escapeHtml(r.name)}</p><p>${escapeHtml(r.description)}</p><table><tr><td>Quantity × unit price</td><td>${r.quantity} × ${r.unitPrice.toFixed(2)} ${escapeHtml(s.currency)}</td></tr><tr><td>Discount / tax</td><td>${r.discount}% / ${r.tax}%</td></tr><tr><td>Total</td><td><strong>${total.toFixed(2)} ${escapeHtml(s.currency)}</strong></td></tr></table><p>Valid through ${escapeHtml(r.validUntil)} (UTC).</p><p>${escapeHtml(s.terms)}</p><a href="mailto:${escapeHtml(s.replyEmail)}?subject=${subject}&body=${body}">Request acceptance by email</a><p>This opens an email draft. The supplier confirms acceptance separately; this page does not process payments.</p></html>`;
+  const html = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Quote ${escapeHtml(r.id)}</title><style>body{font:18px/1.6 system-ui;max-width:760px;margin:50px auto;padding:25px;color:#17243b}h1{color:#1759bf}table{width:100%;border-collapse:collapse}td{padding:12px;border-bottom:1px solid #ddd}a{color:#1759bf}</style><h1>${escapeHtml(s.businessName)}</h1><h2>Quotation ${escapeHtml(r.id)}</h2><p>Prepared for ${escapeHtml(r.name)}</p><p>${escapeHtml(r.description)}</p><table><tr><td>Quantity × unit price</td><td>${r.quantity} × ${r.unitPrice} ${escapeHtml(s.currency)}</td></tr><tr><td>Discount / tax</td><td>${r.discount}% / ${r.tax}%</td></tr><tr><td>Total</td><td><strong>${total} ${escapeHtml(s.currency)}</strong></td></tr></table><p>Valid through ${escapeHtml(r.validUntil)} (UTC).</p><p>${escapeHtml(s.terms)}</p><a href="mailto:${escapeHtml(s.replyEmail)}?subject=${subject}&body=${body}">Request acceptance by email</a><p>This opens an email draft. The supplier confirms acceptance separately; this page does not process payments.</p></html>`;
   const url = URL.createObjectURL(
     new Blob([html], { type: "text/html;charset=utf-8" }),
   );
@@ -240,14 +302,25 @@ async function init() {
   const data = await response.json();
   config = data.config;
   token = data.token;
+  memoryMode = data.storage === "memory";
   workspace = data;
   document.title = config.title + " · Ataraxy Developers";
   $("title").textContent = config.title;
   $("description").textContent = config.description;
   $("scope").textContent = config.scope;
+  $("storage-mode").textContent = memoryMode
+    ? "Temporary demo: changes disappear when this server stops. Export a backup to keep them."
+    : "Local storage: saved changes persist on this computer. Export a backup before moving or updating the app.";
   $("method").textContent = config.method;
   $("repository").href = "https://github.com/AtaraxyDevelopers/" + config.slug;
-  $("asOf").value = config.asOf;
+  let savedDate;
+  try {
+    savedDate = localStorage.getItem("report-date:" + config.slug);
+  } catch {
+    /* Optional browser preference. */
+  }
+  $("asOf").value = savedDate || config.asOf;
+  if (!$("asOf").value) $("asOf").value = config.asOf;
   fields($("settings-fields"), config.settings, workspace.settings);
   clearForm();
   await refresh();
@@ -276,6 +349,10 @@ async function init() {
     }
   });
   $("cancel").addEventListener("click", clearForm);
+  $("download-draft").addEventListener("click", () => downloadDraft("record"));
+  $("download-settings-draft").addEventListener("click", () =>
+    downloadDraft("settings"),
+  );
   $("search").addEventListener("input", renderRows);
   $("asOf").addEventListener("change", () =>
     refresh().catch((e) => message(e.message, true)),
