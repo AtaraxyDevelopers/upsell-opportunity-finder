@@ -118,10 +118,12 @@ export function createApp({
         let size = 0;
         for await (const chunk of req) {
           size += chunk.length;
-          if (size > 2 * 1024 * 1024)
-            return send(413, { error: "Maximum import size is 2 MB" });
-          chunks.push(chunk);
+          // Drain oversized bodies without retaining additional chunks. Exiting
+          // this iterator early can prevent the server's close callback firing.
+          if (size <= 2 * 1024 * 1024) chunks.push(chunk);
         }
+        if (size > 2 * 1024 * 1024)
+          return send(413, { error: "Maximum import size is 2 MB" });
         let body;
         try {
           body = JSON.parse(Buffer.concat(chunks).toString("utf8"));

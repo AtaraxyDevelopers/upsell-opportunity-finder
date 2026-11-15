@@ -97,3 +97,5 @@ test("Accepted saves remain exportable and oversized formatted backups preserve 
       example.records,
     );
   }));
+
+test('An oversized request is rejected and the server can still close cleanly',async()=>withServer(async base=>{const state=await(await fetch(base+'/api/workspace')).json();const response=await fetch(base+'/api/workspace',{method:'PUT',headers:{'Content-Type':'application/json','X-Workspace-Token':state.token},body:JSON.stringify({...state,padding:'x'.repeat(3*1024*1024)})});assert.equal(response.status,413);assert.match((await response.json()).error,/Maximum import size/);assert.deepEqual((await(await fetch(base+'/api/export')).json()).records,example.records);}));
