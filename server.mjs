@@ -63,7 +63,7 @@ export function createApp({
     );
     const send = (status, body, type = "application/json; charset=utf-8") => {
       res.writeHead(status, { "Content-Type": type });
-      res.end(typeof body === "string" ? body : JSON.stringify(body));
+      res.end(typeof body === "string" || Buffer.isBuffer(body) ? body : JSON.stringify(body));
     };
     if (host !== expectedHost)
       return send(403, {
@@ -164,14 +164,14 @@ export function createApp({
         "/": ["public/index.html", "text/html"],
         "/app.js": ["public/app.js", "text/javascript"],
         "/style.css": ["public/style.css", "text/css"],
-        "/favicon.svg": ["public/favicon.svg", "image/svg+xml"],
+        "/ataraxy-developers-logo.png": ["public/ataraxy-developers-logo.png", "image/png"],
       };
       if (req.method === "GET" && files[url.pathname]) {
         const [path, type] = files[url.pathname];
         return send(
           200,
-          readFileSync(join(root, path), "utf8"),
-          type + "; charset=utf-8",
+          readFileSync(join(root, path), type === "image/png" ? undefined : "utf8"),
+          type === "image/png" ? type : type + "; charset=utf-8",
         );
       }
       send(404, { error: "Not found" });
